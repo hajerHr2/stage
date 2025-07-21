@@ -1,0 +1,118 @@
+<!-- Categories Management -->
+<div class="categories-container">
+  <div class="categories-header">
+    <h2>Categories Management</h2>
+    <button class="btn btn-primary" (click)="showAddDialog()">
+      <i class="pi pi-plus"></i>
+      Add Category
+    </button>
+  </div>
+
+  <!-- Categories List -->
+  <div class="categories-list" *ngIf="!loading && categories.length > 0">
+    <div class="category-card" *ngFor="let category of categories; trackBy: trackByCategory">
+      <div class="category-header">
+        <h3>{{ category.nom }}</h3>
+        <div class="category-actions">
+          <button class="btn btn-sm btn-outline-primary" (click)="editCategory(category)">
+            <i class="pi pi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="category.id && confirmDelete(category.id)">
+            <i class="pi pi-trash"></i>
+          </button>
+        </div>
+      </div>
+      <p class="category-description">{{ category.description || 'No description available' }}</p>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading && categories.length === 0">
+    <h3>No Categories Found</h3>
+    <p>Start by creating your first category</p>
+    <button class="btn btn-primary" (click)="showAddDialog()">
+      <i class="pi pi-plus"></i>
+      Create First Category
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <p>Loading categories...</p>
+  </div>
+</div>
+
+<!-- Add/Edit Category Dialog -->
+<p-dialog 
+    [(visible)]="displayDialog" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    header="{{ editMode ? 'Edit Category' : 'Add New Category' }}"
+    styleClass="category-dialog">
+    
+    <form #categoryFormRef="ngForm" (ngSubmit)="saveCategory()">
+      <!-- Category Name -->
+      <div class="form-group">
+        <label for="categoryName">Category Name *</label>
+        <input 
+            type="text" 
+            id="categoryName"
+            class="form-control"
+            [(ngModel)]="categoryForm.nom" 
+            name="nom"
+            required
+            maxlength="50"
+            #nomField="ngModel">
+        <div class="field-info">
+          <span>{{ (categoryForm.nom.length || 0) }}/50</span>
+        </div>
+        <div class="field-error" *ngIf="isFieldInvalid('nom')">
+          {{ validationErrors['nom'] }}
+        </div>
+      </div>
+
+      <!-- Category Description -->
+      <div class="form-group">
+        <label for="categoryDescription">Category Description *</label>
+        <textarea 
+            id="categoryDescription"
+            class="form-control"
+            [(ngModel)]="categoryForm.description" 
+            name="description"
+            required
+            maxlength="500"
+            rows="4"
+            #descriptionField="ngModel">
+        </textarea>
+        <div class="field-info">
+          <span>{{ (categoryForm.description.length || 0) }}/500</span>
+        </div>
+        <div class="field-error" *ngIf="isFieldInvalid('description')">
+          {{ validationErrors['description'] }}
+        </div>
+      </div>
+    </form>
+    
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button type="button" class="btn btn-secondary" (click)="hideDialog()">
+          Cancel
+        </button>
+        <button 
+            type="button" 
+            class="btn btn-primary"
+            (click)="saveCategory()"
+            [disabled]="loading || !isFormValid">
+          {{ loading ? 'Saving...' : (editMode ? 'Update' : 'Create') }}
+        </button>
+      </div>
+    </ng-template>
+</p-dialog>
+
+<!-- Confirmation Dialog -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast Messages -->
+<p-toast></p-toast>
