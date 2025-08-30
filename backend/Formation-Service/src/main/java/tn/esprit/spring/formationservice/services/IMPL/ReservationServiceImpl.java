@@ -73,4 +73,16 @@ public class ReservationServiceImpl implements IReservationService {
     public List<Reservation> getReservationsByParticipant(Long participantId) {
         return reservationRepository.findByParticipantId(participantId);
     }
+    @Override
+    public List<Reservation> getReservationsByFormation(Long formationId) {
+        return reservationRepository.findByFormationId(formationId);
+    }
+    @Override
+    public Reservation updateReservationStatus(Long reservationId, String status) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        reservation.setStatut(StatutReservation.valueOf(status));
+        return reservationRepository.save(reservation);
+    }
 }

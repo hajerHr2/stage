@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { Categorie, Formation, Reservation } from '../models/formation.model';
+import { environment } from '../../../environments/environment';
 
 
 @Injectable({

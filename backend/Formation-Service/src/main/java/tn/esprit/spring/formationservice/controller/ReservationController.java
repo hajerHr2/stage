@@ -31,4 +31,13 @@ public class ReservationController {
     public ResponseEntity<List<Reservation>> getByParticipant(@PathVariable Long id) {
         return new ResponseEntity<>(reservationService.getReservationsByParticipant(id), HttpStatus.OK);
     }
+    // ADD THIS NEW ENDPOINT
+    @GetMapping("/formation/{formationId}")
+    public ResponseEntity<List<Reservation>> getByFormation(@PathVariable Long formationId) {
+        return new ResponseEntity<>(reservationService.getReservationsByFormation(formationId), HttpStatus.OK);
+    }
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Reservation> updateStatus(@PathVariable Long id, @RequestParam String status) {
+        return new ResponseEntity<>(reservationService.updateReservationStatus(id, status), HttpStatus.OK);
+    }
 }

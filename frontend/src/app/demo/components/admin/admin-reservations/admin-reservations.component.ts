@@ -233,7 +233,7 @@ export class AdminReservationsComponent implements OnInit {
       header: 'Approve Reservation',
       icon: 'pi pi-check-circle',
       acceptButtonStyleClass: 'p-button-success',
-      accept: () => {
+      accept: () => {                                                                         
         if (reservation.id) {
           this.formationService.updateReservationStatus(reservation.id, 'CONFIRME').subscribe({
             next: () => {
