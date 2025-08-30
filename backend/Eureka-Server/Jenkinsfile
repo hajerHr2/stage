@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Credentials ID déjà configurés dans Jenkins
         GITHUB_CREDENTIALS = 'github'
         DOCKERHUB_CREDENTIALS = 'dockerhub3'
         SONAR_CREDENTIALS = 'jenkins-sonar'
@@ -10,7 +9,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/hajerHr2/stage.git', credentialsId: "${GITHUB_CREDENTIALS}"
@@ -19,7 +17,6 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                // Exemple pour deux microservices, répéter pour les autres
                 sh 'docker build -t hajer532/auth:latest ./backend/User-Service'
                 sh 'docker build -t hajer532/formation-service:latest ./backend/Formation-Service'
             }
@@ -28,7 +25,7 @@ pipeline {
         stage('Push Docker Images') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     sh 'docker push hajer532/auth:latest'
                     sh 'docker push hajer532/formation-service:latest'
                 }
@@ -46,8 +43,8 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                sh 'trivy image --severity HIGH,CRITICAL monhub/auth:latest'
-                sh 'trivy image --severity HIGH,CRITICAL monhub/formation-service:latest'
+                sh 'trivy image --severity HIGH,CRITICAL hajer532/auth:latest'
+                sh 'trivy image --severity HIGH,CRITICAL hajer532/formation-service:latest'
             }
         }
 
@@ -57,7 +54,6 @@ pipeline {
                 sh 'kubectl apply -f ./k8s/formation-deployment.yaml'
             }
         }
-
     }
 
     post {
