@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Credentials ID déjà configurés dans Jenkins
         GITHUB_CREDENTIALS = 'github'
         DOCKERHUB_CREDENTIALS = 'dockerhub3'
         SONAR_CREDENTIALS = 'jenkins-sonar'
@@ -19,16 +18,15 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                // Exemple pour deux microservices, répéter pour les autres
-                sh 'docker build -t hajer532/auth:latest ./backend/User-Service'
-                sh 'docker build -t hajer532/formation-service:latest ./backend/Formation-Service'
+                sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service'
+                sh 'docker build -t hajer532/formation-service:latest -f backend/Formation-Service/Dockerfile backend/Formation-Service'
             }
         }
 
         stage('Push Docker Images') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     sh 'docker push hajer532/auth:latest'
                     sh 'docker push hajer532/formation-service:latest'
                 }
@@ -38,26 +36,25 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
-                    sh './mvnw clean verify sonar:sonar -f ./backend/Auth/pom.xml'
-                    sh './mvnw clean verify sonar:sonar -f ./backend/Formation-Service/pom.xml'
+                    sh 'mvn clean verify sonar:sonar -f backend/User-Service/pom.xml'
+                    sh 'mvn clean verify sonar:sonar -f backend/Formation-Service/pom.xml'
                 }
             }
         }
 
         stage('Trivy Scan') {
             steps {
-                sh 'trivy image --severity HIGH,CRITICAL monhub/auth:latest'
-                sh 'trivy image --severity HIGH,CRITICAL monhub/formation-service:latest'
+                sh 'trivy image --severity HIGH,CRITICAL hajer532/auth:latest'
+                sh 'trivy image --severity HIGH,CRITICAL hajer532/formation-service:latest'
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f ./k8s/auth-deployment.yaml'
-                sh 'kubectl apply -f ./k8s/formation-deployment.yaml'
+                sh 'kubectl apply -f k8s/auth-deployment.yaml'
+                sh 'kubectl apply -f k8s/formation-deployment.yaml'
             }
         }
-
     }
 
     post {
@@ -65,10 +62,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo 'Pipeline terminé avec succès !'
+            echo '✅ Pipeline terminé avec succès !'
         }
         failure {
-            echo 'Pipeline échoué. Vérifier les logs.'
+            echo '❌ Pipeline échoué. Vérifier les logs.'
         }
     }
 }
