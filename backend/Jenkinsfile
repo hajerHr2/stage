@@ -20,6 +20,7 @@ pipeline {
             steps {
                 sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service'
                 sh 'docker build -t hajer532/formation-service:latest -f backend/Formation-Service/Dockerfile backend/Formation-Service'
+                sh 'docker build -t hajer532/eureka-server:latest -f backend/Eureka-Server/Dockerfile backend/Eureka-Server'
             }
         }
 
@@ -29,31 +30,32 @@ pipeline {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     sh 'docker push hajer532/auth:latest'
                     sh 'docker push hajer532/formation-service:latest'
+                    sh 'docker push hajer532/eureka-server:latest'
                 }
             }
         }
 
-        // SonarQube PR Analysis (seulement fichiers modifiés)
-        stage('SonarQube PR Analysis') {
-            when {
-                changeRequest() // s'exécute uniquement si c'est une PR
-            }
+        stage('SonarQube Analysis (fichiers modifiés seulement)') {
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
                         sh """
-                        mvn clean verify sonar:sonar \
-                        -f backend/User-Service/pom.xml \
-                        -Dsonar.pullrequest.key=${env.CHANGE_ID} \
-                        -Dsonar.pullrequest.branch=${env.BRANCH_NAME} \
-                        -Dsonar.pullrequest.base=main
+                        mvn clean verify sonar:sonar -f backend/User-Service/pom.xml \
+                            -Dsonar.projectKey=auth \
+                            -Dsonar.branch.name=hajertest \
+                            -Dsonar.scm.enabled=true
                         """
                         sh """
-                        mvn clean verify sonar:sonar \
-                        -f backend/Formation-Service/pom.xml \
-                        -Dsonar.pullrequest.key=${env.CHANGE_ID} \
-                        -Dsonar.pullrequest.branch=${env.BRANCH_NAME} \
-                        -Dsonar.pullrequest.base=main
+                        mvn clean verify sonar:sonar -f backend/Formation-Service/pom.xml \
+                            -Dsonar.projectKey=formation-service \
+                            -Dsonar.branch.name=hajertest \
+                            -Dsonar.scm.enabled=true
+                        """
+                        sh """
+                        mvn clean verify sonar:sonar -f backend/Eureka-Server/pom.xml \
+                            -Dsonar.projectKey=eureka-server \
+                            -Dsonar.branch.name=hajertest \
+                            -Dsonar.scm.enabled=true
                         """
                     }
                 }
@@ -64,16 +66,18 @@ pipeline {
             steps {
                 sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/auth:latest'
                 sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/formation-service:latest'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/eureka-server:latest'
             }
         }
 
         stage('Deploy to Kubernetes') {
             when {
-                branch 'main' // déploiement uniquement sur main
+                branch 'hajertest' // déploiement uniquement sur main
             }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
                 sh 'kubectl apply -f k8s/formation-deployment.yaml'
+                sh 'kubectl apply -f k8s/eureka-deployment.yaml'
             }
         }
     }
