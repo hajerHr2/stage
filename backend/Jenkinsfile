@@ -10,14 +10,12 @@ pipeline {
 
     stages {
 
-        // ✅ Checkout de la branche hajertest
         stage('Checkout Code') {
             steps {
                 git branch: 'hajertest', url: 'https://github.com/hajerHr2/stage.git', credentialsId: "${GITHUB_CREDENTIALS}"
             }
         }
 
-        // ✅ Build Docker
         stage('Build Docker Images') {
             steps {
                 sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service'
@@ -25,7 +23,6 @@ pipeline {
             }
         }
 
-        // ✅ Push Docker
         stage('Push Docker Images') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -36,41 +33,43 @@ pipeline {
             }
         }
 
-        // ✅ SonarQube - analyse seulement si PR ou main
-        stage('SonarQube Analysis') {
+        // SonarQube PR Analysis (seulement fichiers modifiés)
+        stage('SonarQube PR Analysis') {
             when {
-                anyOf {
-                    branch 'main'           // build complet sur main
-                    changeRequest()         // PR Analysis
-                }
+                changeRequest() // s'exécute uniquement si c'est une PR
             }
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
-                        def sonarCmd = "mvn clean verify sonar:sonar"
-                        if (env.CHANGE_ID) { 
-                            // Paramètres PR pour SonarQube
-                            sonarCmd += " -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.branch=${env.BRANCH_NAME} -Dsonar.pullrequest.base=main"
-                        }
-                        sh "${sonarCmd} -f backend/User-Service/pom.xml"
-                        sh "${sonarCmd} -f backend/Formation-Service/pom.xml"
+                        sh """
+                        mvn clean verify sonar:sonar \
+                        -f backend/User-Service/pom.xml \
+                        -Dsonar.pullrequest.key=${env.CHANGE_ID} \
+                        -Dsonar.pullrequest.branch=${env.BRANCH_NAME} \
+                        -Dsonar.pullrequest.base=main
+                        """
+                        sh """
+                        mvn clean verify sonar:sonar \
+                        -f backend/Formation-Service/pom.xml \
+                        -Dsonar.pullrequest.key=${env.CHANGE_ID} \
+                        -Dsonar.pullrequest.branch=${env.BRANCH_NAME} \
+                        -Dsonar.pullrequest.base=main
+                        """
                     }
                 }
             }
         }
 
-        // ✅ Trivy Scan
         stage('Trivy Scan') {
             steps {
-                sh 'trivy image --severity HIGH,CRITICAL hajer532/auth:latest'
-                sh 'trivy image --severity HIGH,CRITICAL hajer532/formation-service:latest'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/auth:latest'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/formation-service:latest'
             }
         }
 
-        // ✅ Deploy Kubernetes
         stage('Deploy to Kubernetes') {
             when {
-                branch 'main' // Déploiement seulement sur main
+                branch 'main' // déploiement uniquement sur main
             }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
