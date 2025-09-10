@@ -12,7 +12,7 @@ import tn.esprit.examen.nomPrenomClasseExamen.services.UsersModule.IUserService;
 import java.util.ArrayList;
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/user")
 public class UserController {

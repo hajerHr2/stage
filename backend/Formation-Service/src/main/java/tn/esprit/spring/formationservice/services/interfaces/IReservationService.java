@@ -8,4 +8,7 @@ public interface IReservationService {
     Reservation addReservation(Reservation reservation);
     List<Reservation> getAllReservations();
     List<Reservation> getReservationsByParticipant(Long participantId);
-}
+
+    List<Reservation> getReservationsByFormation(Long formationId);
+
+    Reservation updateReservationStatus(Long reservationId, String status);}

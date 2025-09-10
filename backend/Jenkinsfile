@@ -1,0 +1,96 @@
+pipeline {
+    agent any
+
+    environment {
+        GITHUB_CREDENTIALS = 'github'
+        DOCKERHUB_CREDENTIALS = 'dockerhub3'
+        SONAR_CREDENTIALS = 'jenkins-sonar'
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'hajertest', url: 'https://github.com/hajerHr2/stage.git', credentialsId: "${GITHUB_CREDENTIALS}"
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service'
+                sh 'docker build -t hajer532/formation-service:latest -f backend/Formation-Service/Dockerfile backend/Formation-Service'
+                sh 'docker build -t hajer532/eureka-server:latest -f backend/Eureka-Server/Dockerfile backend/Eureka-Server'
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh 'docker push hajer532/auth:latest'
+                    sh 'docker push hajer532/formation-service:latest'
+                    sh 'docker push hajer532/eureka-server:latest'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis (fichiers modifiés seulement)') {
+            steps {
+                withSonarQubeEnv("${SONAR_CREDENTIALS}") {
+                    script {
+                        sh """
+                        mvn clean verify sonar:sonar -f backend/User-Service/pom.xml \
+                            -Dsonar.projectKey=auth \
+                            -Dsonar.branch.name=hajertest \
+                            -Dsonar.scm.enabled=true
+                        """
+                        sh """
+                        mvn clean verify sonar:sonar -f backend/Formation-Service/pom.xml \
+                            -Dsonar.projectKey=formation-service \
+                            -Dsonar.branch.name=hajertest \
+                            -Dsonar.scm.enabled=true
+                        """
+                        sh """
+                        mvn clean verify sonar:sonar -f backend/Eureka-Server/pom.xml \
+                            -Dsonar.projectKey=eureka-server \
+                            -Dsonar.branch.name=hajertest \
+                            -Dsonar.scm.enabled=true
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/auth:latest'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/formation-service:latest'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/eureka-server:latest'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when {
+                branch 'hajertest' // déploiement uniquement sur main
+            }
+            steps {
+                sh 'kubectl apply -f k8s/auth-deployment.yaml'
+                sh 'kubectl apply -f k8s/formation-deployment.yaml'
+                sh 'kubectl apply -f k8s/eureka-deployment.yaml'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo '✅ Pipeline terminé avec succès !'
+        }
+        failure {
+            echo '❌ Pipeline échoué. Vérifier les logs.'
+        }
+    }
+}
