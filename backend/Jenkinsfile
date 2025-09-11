@@ -54,9 +54,6 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 sh '''
-                # Mettre à jour la DB Trivy
-                docker run --rm -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy db update
-
                 # Scanner toutes les images et échouer si vulnérabilités HIGH/CRITICAL détectées
                 for IMAGE in hajer532/auth:latest hajer532/formation-service:latest hajer532/eureka-server:latest; do
                     echo "Scanning $IMAGE ..."
