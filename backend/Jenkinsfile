@@ -66,17 +66,17 @@ pipeline {
             steps {
                 sh '''
                 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
-                    --timeout 10m \
+                    --timeout 30m \
                     --scanners vuln \
                     --severity HIGH,CRITICAL hajer532/auth:latest
 
                 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
-                    --timeout 10m \
+                    --timeout 30m \
                     --scanners vuln \
                     --severity HIGH,CRITICAL hajer532/formation-service:latest
 
                 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
-                    --timeout 10m \
+                    --timeout 30m \
                     --scanners vuln \
                     --severity HIGH,CRITICAL hajer532/eureka-server:latest
                 '''
