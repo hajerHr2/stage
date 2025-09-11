@@ -6,6 +6,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = 'dockerhub3'
         SONAR_CREDENTIALS = 'jenkins-sonar'
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
+        TRIVY_CACHE_DIR = '/tmp/trivy-cache'
     }
 
     stages {
@@ -36,26 +37,14 @@ pipeline {
         }
 
         stage('SonarQube Analysis (main seulement)') {
-            when {
-                branch 'main'
-            }
+            when { branch 'main' }
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
                         sh """
-                        mvn clean verify sonar:sonar -f backend/User-Service/pom.xml \
-                            -Dsonar.projectKey=auth \
-                            -Dsonar.scm.enabled=true
-                        """
-                        sh """
-                        mvn clean verify sonar:sonar -f backend/Formation-Service/pom.xml \
-                            -Dsonar.projectKey=formation-service \
-                            -Dsonar.scm.enabled=true
-                        """
-                        sh """
-                        mvn clean verify sonar:sonar -f backend/Eureka-Server/pom.xml \
-                            -Dsonar.projectKey=eureka-server \
-                            -Dsonar.scm.enabled=true
+                        mvn clean verify sonar:sonar -f backend/User-Service/pom.xml -Dsonar.projectKey=auth -Dsonar.scm.enabled=true
+                        mvn clean verify sonar:sonar -f backend/Formation-Service/pom.xml -Dsonar.projectKey=formation-service -Dsonar.scm.enabled=true
+                        mvn clean verify sonar:sonar -f backend/Eureka-Server/pom.xml -Dsonar.projectKey=eureka-server -Dsonar.scm.enabled=true
                         """
                     }
                 }
@@ -64,29 +53,26 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                sh '''
-                docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
-                    --timeout 30m \
-                    --scanners vuln \
-                    --severity HIGH,CRITICAL hajer532/auth:latest
+                sh """
+                # Télécharger la DB Trivy pour éviter les erreurs réseau
+                docker run --rm -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy --download-db-only --skip-version-check
 
-                docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
-                    --timeout 30m \
-                    --scanners vuln \
-                    --severity HIGH,CRITICAL hajer532/formation-service:latest
-
-                docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
-                    --timeout 30m \
-                    --scanners vuln \
-                    --severity HIGH,CRITICAL hajer532/eureka-server:latest
-                '''
+                # Scanner toutes les images
+                for IMAGE in hajer532/auth:latest hajer532/formation-service:latest hajer532/eureka-server:latest; do
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v $TRIVY_CACHE_DIR:/root/.cache/trivy \
+                        aquasec/trivy image \
+                        --timeout 60m \
+                        --skip-version-check \
+                        --scanners vuln \
+                        --severity HIGH,CRITICAL $IMAGE
+                done
+                """
             }
         }
 
         stage('Deploy to Kubernetes') {
-            when {
-                branch 'hajertest' // déploiement uniquement sur hajertest
-            }
+            when { branch 'hajertest' }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
                 sh 'kubectl apply -f k8s/formation-deployment.yaml'
@@ -96,14 +82,8 @@ pipeline {
     }
 
     post {
-        always {
-            cleanWs()
-        }
-        success {
-            echo '✅ Pipeline terminé avec succès !'
-        }
-        failure {
-            echo '❌ Pipeline échoué. Vérifier les logs.'
-        }
+        always { cleanWs() }
+        success { echo '✅ Pipeline terminé avec succès !' }
+        failure { echo '❌ Pipeline échoué. Vérifier les logs.' }
     }
 }
