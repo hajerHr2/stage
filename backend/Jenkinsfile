@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true) // évite un checkout inutile automatique
+    }
+
     environment {
         GITHUB_CREDENTIALS = 'github'
         DOCKERHUB_CREDENTIALS = 'dockerhub3'
@@ -11,12 +15,14 @@ pipeline {
     stages {
 
         stage('Checkout Code') {
+            when { branch 'main' }
             steps {
-                git branch: 'hajertest', url: 'https://github.com/hajerHr2/stage.git', credentialsId: "${GITHUB_CREDENTIALS}"
+                git branch: 'main', url: 'https://github.com/hajerHr2/stage.git', credentialsId: "${GITHUB_CREDENTIALS}"
             }
         }
 
         stage('Build Docker Images') {
+            when { branch 'main' }
             steps {
                 sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service'
                 sh 'docker build -t hajer532/formation-service:latest -f backend/Formation-Service/Dockerfile backend/Formation-Service'
@@ -25,6 +31,7 @@ pipeline {
         }
 
         stage('Push Docker Images') {
+            when { branch 'main' }
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
@@ -35,27 +42,28 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis (fichiers modifiés seulement)') {
+        stage('SonarQube Analysis') {
+            when { branch 'main' }
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
                         sh """
-                        mvn clean verify sonar:sonar -f backend/User-Service/pom.xml \
+                        mvn sonar:sonar -f backend/User-Service/pom.xml \
                             -Dsonar.projectKey=auth \
-                            -Dsonar.branch.name=hajertest \
-                            -Dsonar.scm.enabled=true
+                            -Dsonar.branch.name=main \
+                            -Dsonar.scm.enabled=true -DskipTests=true
                         """
                         sh """
-                        mvn clean verify sonar:sonar -f backend/Formation-Service/pom.xml \
+                        mvn sonar:sonar -f backend/Formation-Service/pom.xml \
                             -Dsonar.projectKey=formation-service \
-                            -Dsonar.branch.name=hajertest \
-                            -Dsonar.scm.enabled=true
+                            -Dsonar.branch.name=main \
+                            -Dsonar.scm.enabled=true -DskipTests=true
                         """
                         sh """
-                        mvn clean verify sonar:sonar -f backend/Eureka-Server/pom.xml \
+                        mvn sonar:sonar -f backend/Eureka-Server/pom.xml \
                             -Dsonar.projectKey=eureka-server \
-                            -Dsonar.branch.name=hajertest \
-                            -Dsonar.scm.enabled=true
+                            -Dsonar.branch.name=main \
+                            -Dsonar.scm.enabled=true -DskipTests=true
                         """
                     }
                 }
@@ -63,6 +71,7 @@ pipeline {
         }
 
         stage('Trivy Scan') {
+            when { branch 'main' }
             steps {
                 sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/auth:latest'
                 sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL hajer532/formation-service:latest'
@@ -71,9 +80,7 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            when {
-                branch 'hajertest' // déploiement uniquement sur main
-            }
+            when { branch 'main' }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
                 sh 'kubectl apply -f k8s/formation-deployment.yaml'
@@ -87,7 +94,7 @@ pipeline {
             cleanWs()
         }
         success {
-            echo '✅ Pipeline terminé avec succès !'
+            echo '✅ Pipeline terminé avec succès sur main !'
         }
         failure {
             echo '❌ Pipeline échoué. Vérifier les logs.'
