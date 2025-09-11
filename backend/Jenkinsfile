@@ -57,7 +57,7 @@ pipeline {
                 # Télécharger la DB Trivy pour éviter les erreurs réseau
                 docker run --rm -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy --download-db-only --skip-version-check
 
-                # Scanner toutes les images
+                # Scanner toutes les images et échouer si vulnérabilités HIGH/CRITICAL détectées
                 for IMAGE in hajer532/auth:latest hajer532/formation-service:latest hajer532/eureka-server:latest; do
                     docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
                         -v $TRIVY_CACHE_DIR:/root/.cache/trivy \
@@ -65,7 +65,10 @@ pipeline {
                         --timeout 60m \
                         --skip-version-check \
                         --scanners vuln \
-                        --severity HIGH,CRITICAL $IMAGE
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        --ignore-unfixed \
+                        $IMAGE
                 done
                 """
             }
