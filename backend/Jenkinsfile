@@ -35,26 +35,26 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis (fichiers modifiés seulement)') {
+        stage('SonarQube Analysis (main seulement)') {
+            when {
+                branch 'main'
+            }
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
                         sh """
                         mvn clean verify sonar:sonar -f backend/User-Service/pom.xml \
                             -Dsonar.projectKey=auth \
-                            -Dsonar.branch.name=hajertest \
                             -Dsonar.scm.enabled=true
                         """
                         sh """
                         mvn clean verify sonar:sonar -f backend/Formation-Service/pom.xml \
                             -Dsonar.projectKey=formation-service \
-                            -Dsonar.branch.name=hajertest \
                             -Dsonar.scm.enabled=true
                         """
                         sh """
                         mvn clean verify sonar:sonar -f backend/Eureka-Server/pom.xml \
                             -Dsonar.projectKey=eureka-server \
-                            -Dsonar.branch.name=hajertest \
                             -Dsonar.scm.enabled=true
                         """
                     }
@@ -72,7 +72,7 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             when {
-                branch 'hajertest' // déploiement uniquement sur main
+                branch 'hajertest' // déploiement uniquement sur hajertest
             }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
