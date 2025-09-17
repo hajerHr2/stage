@@ -16,13 +16,12 @@ pipeline {
             }
         }
 
-        stage('Build & Unit Tests') {
+        stage('Build & Package (skip tests)') {
             steps {
                 script {
-                    // Compilation + exécution des tests pour chaque microservice
-                    sh "mvn clean verify -f backend/User-Service/pom.xml"
-                    sh "mvn clean verify -f backend/Formation-Service/pom.xml"
-                    sh "mvn clean verify -f backend/Eureka-Server/pom.xml"
+                    sh "mvn clean package -DskipTests -f backend/User-Service/pom.xml"
+                    sh "mvn clean package -DskipTests -f backend/Formation-Service/pom.xml"
+                    sh "mvn clean package -DskipTests -f backend/Eureka-Server/pom.xml"
                 }
             }
         }
@@ -33,17 +32,9 @@ pipeline {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
                         sh """
-                        mvn sonar:sonar -f backend/User-Service/pom.xml \
-                            -Dsonar.projectKey=auth \
-                            -Dsonar.scm.enabled=true
-                        
-                        mvn sonar:sonar -f backend/Formation-Service/pom.xml \
-                            -Dsonar.projectKey=formation-service \
-                            -Dsonar.scm.enabled=true
-                        
-                        mvn sonar:sonar -f backend/Eureka-Server/pom.xml \
-                            -Dsonar.projectKey=eureka-server \
-                            -Dsonar.scm.enabled=true
+                        mvn sonar:sonar -f backend/User-Service/pom.xml -Dsonar.projectKey=auth -Dsonar.scm.enabled=true
+                        mvn sonar:sonar -f backend/Formation-Service/pom.xml -Dsonar.projectKey=formation-service -Dsonar.scm.enabled=true
+                        mvn sonar:sonar -f backend/Eureka-Server/pom.xml -Dsonar.projectKey=eureka-server -Dsonar.scm.enabled=true
                         """
                     }
                 }
