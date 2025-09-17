@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+
+ triggers {
+        pollSCM('H/1 * * * *') // vérifie le repo toutes les 5 minutes
+    }
+
     environment {
         GITHUB_CREDENTIALS = 'github'
         DOCKERHUB_CREDENTIALS = 'dockerhub3'
