@@ -56,6 +56,7 @@ pipeline {
         // 4️⃣ Build Docker Images en parallèle
         stage('Build Docker Images') {
             steps {
+                         sh 'mkdir -p $TRIVY_CACHE_DIR'  // 🔹 crée le dossier cache
                 parallel(
                     'Auth Image': { sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service' },
                     'Formation Image': { sh 'docker build -t hajer532/formation-service:latest -f backend/Formation-Service/Dockerfile backend/Formation-Service' },
@@ -81,6 +82,7 @@ pipeline {
         // 6️⃣ Trivy Scan en parallèle
         stage('Trivy Scan') {
             steps {
+                         sh 'mkdir -p $TRIVY_CACHE_DIR'  // 🔹 crée le dossier cache
                 parallel(
                     'Scan Auth': { sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy image --timeout 60m --skip-version-check --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed hajer532/auth:latest" },
                     'Scan Formation': { sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy image --timeout 60m --skip-version-check --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed hajer532/formation-service:latest" },
