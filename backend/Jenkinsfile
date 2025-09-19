@@ -11,7 +11,6 @@ pipeline {
         SONAR_CREDENTIALS = 'jenkins-sonar'
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
         TRIVY_CACHE_DIR = '/tmp/trivy-cache'
-        MAVEN_OPTS = '-Dmaven.repo.local=$WORKSPACE/.m2/repository'
     }
 
     stages {
@@ -23,30 +22,42 @@ pipeline {
             }
         }
 
-        // 2️⃣ Build Maven en parallèle avec cache .m2
+        // 2️⃣ Build Maven en parallèle avec cache local .m2
         stage('Build & Package') {
             steps {
                 script {
-                    sh 'mkdir -p $WORKSPACE/.m2/repository' // crée le cache local Maven
+                    sh 'mkdir -p $WORKSPACE/.m2/repository'
 
                     parallel(
-                        'User-Service': { sh "mvn package -T 2C -DskipTests -f backend/User-Service/pom.xml" },
-                        'Formation-Service': { sh "mvn package -T 2C -DskipTests -f backend/Formation-Service/pom.xml" },
-                        'Eureka-Server': { sh "mvn package -T 2C -DskipTests -f backend/Eureka-Server/pom.xml" }
+                        'User-Service': { 
+                            sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository package -T 2C -DskipTests -f backend/User-Service/pom.xml" 
+                        },
+                        'Formation-Service': { 
+                            sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository package -T 2C -DskipTests -f backend/Formation-Service/pom.xml" 
+                        },
+                        'Eureka-Server': { 
+                            sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository package -T 2C -DskipTests -f backend/Eureka-Server/pom.xml" 
+                        }
                     )
                 }
             }
         }
 
-        // 3️⃣ SonarQube Analysis en parallèle
+        // 3️⃣ SonarQube Analysis en parallèle avec cache Maven
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
                         parallel(
-                            'User-Service': { sh "mvn sonar:sonar -f backend/User-Service/pom.xml -Dsonar.projectKey=auth -Dsonar.scm.enabled=true" },
-                            'Formation-Service': { sh "mvn sonar:sonar -f backend/Formation-Service/pom.xml -Dsonar.projectKey=formation-service -Dsonar.scm.enabled=true" },
-                            'Eureka-Server': { sh "mvn sonar:sonar -f backend/Eureka-Server/pom.xml -Dsonar.projectKey=eureka-server -Dsonar.scm.enabled=true" }
+                            'User-Service': { 
+                                sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository sonar:sonar -f backend/User-Service/pom.xml -Dsonar.projectKey=auth -Dsonar.scm.enabled=true" 
+                            },
+                            'Formation-Service': { 
+                                sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository sonar:sonar -f backend/Formation-Service/pom.xml -Dsonar.projectKey=formation-service -Dsonar.scm.enabled=true" 
+                            },
+                            'Eureka-Server': { 
+                                sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository sonar:sonar -f backend/Eureka-Server/pom.xml -Dsonar.projectKey=eureka-server -Dsonar.scm.enabled=true" 
+                            }
                         )
                     }
                 }
@@ -78,11 +89,10 @@ pipeline {
             }
         }
 
-        // 6️⃣ Trivy Scan en parallèle (corrigé)
+        // 6️⃣ Trivy Scan en parallèle
         stage('Trivy Scan') {
             steps {
                 script {
-                    // Créer le dossier de cache Trivy si inexistant
                     sh 'mkdir -p $TRIVY_CACHE_DIR/db'
 
                     parallel(
