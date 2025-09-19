@@ -3,7 +3,7 @@ pipeline {
 
 
  triggers {
-        pollSCM('H/1 * * * *') // vérifie le repo toutes les 5 minutes
+        pollSCM('H/5 * * * *') // vérifie le repo toutes les 5 minutes
     }
 
     environment {
@@ -23,12 +23,12 @@ pipeline {
         }
 
         // 2️⃣ Build Maven
-        stage('Build & Package (skip tests)') {
+        stage('Build & Package ') {
             steps {
                 script {
-                    sh "mvn clean package -DskipTests -f backend/User-Service/pom.xml"
-                    sh "mvn clean package -DskipTests -f backend/Formation-Service/pom.xml"
-                    sh "mvn clean package -DskipTests -f backend/Eureka-Server/pom.xml"
+                    sh "mvn package -DskipTests -f backend/User-Service/pom.xml"
+                    sh "mvn package -DskipTests -f backend/Formation-Service/pom.xml"
+                    sh "mvn package -DskipTests -f backend/Eureka-Server/pom.xml"
                 }
             }
         }
