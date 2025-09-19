@@ -152,7 +152,7 @@ pipeline {
     }
 
     post {
-        always { cleanWs() }
+        
         success { echo '✅ Pipeline terminé avec succès !' }
         failure { echo '❌ Pipeline échoué. Vérifier les logs.' }
     }
