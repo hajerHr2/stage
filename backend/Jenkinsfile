@@ -78,15 +78,55 @@ pipeline {
             }
         }
 
-        // 6️⃣ Trivy Scan en parallèle
+        // 6️⃣ Trivy Scan en parallèle (corrigé)
         stage('Trivy Scan') {
             steps {
-                         sh 'mkdir -p $TRIVY_CACHE_DIR'  // 🔹 crée le dossier cachess
-                parallel(
-                    'Scan Auth': { sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy image --timeout 60m --skip-version-check --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed hajer532/auth:latest" },
-                    'Scan Formation': { sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy image --timeout 60m --skip-version-check --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed hajer532/formation-service:latest" },
-                    'Scan Eureka': { sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $TRIVY_CACHE_DIR:/root/.cache/trivy aquasec/trivy image --timeout 60m --skip-version-check --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed hajer532/eureka-server:latest" }
-                )
+                script {
+                    // Créer le dossier de cache Trivy si inexistant
+                    sh 'mkdir -p $TRIVY_CACHE_DIR/db'
+
+                    parallel(
+                        'Scan Auth': { 
+                            sh """
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v $TRIVY_CACHE_DIR:/root/.cache \
+                                    aquasec/trivy image --timeout 60m \
+                                    --skip-version-check \
+                                    --scanners vuln \
+                                    --severity HIGH,CRITICAL \
+                                    --exit-code 1 \
+                                    --ignore-unfixed hajer532/auth:latest
+                            """
+                        },
+                        'Scan Formation': { 
+                            sh """
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v $TRIVY_CACHE_DIR:/root/.cache \
+                                    aquasec/trivy image --timeout 60m \
+                                    --skip-version-check \
+                                    --scanners vuln \
+                                    --severity HIGH,CRITICAL \
+                                    --exit-code 1 \
+                                    --ignore-unfixed hajer532/formation-service:latest
+                            """
+                        },
+                        'Scan Eureka': { 
+                            sh """
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v $TRIVY_CACHE_DIR:/root/.cache \
+                                    aquasec/trivy image --timeout 60m \
+                                    --skip-version-check \
+                                    --scanners vuln \
+                                    --severity HIGH,CRITICAL \
+                                    --exit-code 1 \
+                                    --ignore-unfixed hajer532/eureka-server:latest
+                            """
+                        }
+                    )
+                }
             }
         }
 
