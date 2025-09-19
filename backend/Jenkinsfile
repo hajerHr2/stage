@@ -26,9 +26,9 @@ pipeline {
         stage('Build & Package ') {
             steps {
                 script {
-                    sh "mvn package -DskipTests -f backend/User-Service/pom.xml"
-                    sh "mvn package -DskipTests -f backend/Formation-Service/pom.xml"
-                    sh "mvn package -DskipTests -f backend/Eureka-Server/pom.xml"
+                    sh "mvn package -T 2C -DskipTests -f backend/User-Service/pom.xml"
+                    sh "mvn package -T 2C -DskipTests -f backend/Formation-Service/pom.xml"
+                    sh "mvn package -T 2C -DskipTests -f backend/Eureka-Server/pom.xml"
                 }
             }
         }
