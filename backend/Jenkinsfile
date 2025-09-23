@@ -138,9 +138,9 @@ pipeline {
             }
         }
 
-        // 7️⃣ Deploy to Kubernetes (seulement branche hajertest)
+        // 7️⃣ Deploy to Kdddddddubernetes (seulement branche hajertest)
         stage('Deploy to Kubernetes') {
-            when { branch 'hajertest' }
+            when { branch 'main' }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
                 sh 'kubectl apply -f k8s/formation-deployment.yaml'
