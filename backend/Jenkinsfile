@@ -1,10 +1,7 @@
 pipeline {
     agent any
 
-    triggers {
-               githubPush()
-
-    }
+   
 
     environment {
         GITHUB_CREDENTIALS = 'github'
