@@ -4,7 +4,7 @@ pipeline {
    
 
     environment {
-        GITHUB_CREDENTIALS = 'github'
+        GITHUB_CREDENTIALS = 'github1'
         DOCKERHUB_CREDENTIALS = 'dockerhub3'
         SONAR_CREDENTIALS = 'jenkins-sonar'
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
