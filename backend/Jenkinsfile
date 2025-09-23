@@ -41,7 +41,7 @@ pipeline {
             }
         }
 
-        // 3️⃣ SonarQube Analysis en parallèle avec cache Maven
+        // 3️⃣ SonarQube Analyskis en parallèle avec cache Maven
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
