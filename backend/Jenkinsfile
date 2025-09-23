@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     triggers {
-        pollSCM('H/5 * * * *') // vérifiesss le repo toutes les 5 minutes
+               githubPush()
+
     }
 
     environment {
