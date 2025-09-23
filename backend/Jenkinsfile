@@ -138,7 +138,7 @@ pipeline {
             }
         }
 
-        // 7️⃣ Deploy to Kdddddddubernetes (seulement branche hajertest)
+        // 7️⃣ Deploy to Kssdddddddubernetes (seulement branche main)
         stage('Deploy to Kubernetes') {
             when { branch 'main' }
             steps {
