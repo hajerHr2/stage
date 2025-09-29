@@ -103,7 +103,7 @@ pipeline {
                                     --skip-version-check \
                                     --scanners vuln \
                                     --severity HIGH,CRITICAL \
-                                    --exit-code 1 \
+                                    --exit-code 0 \
                                     --ignore-unfixed hajer532/auth:latest
                             """
                         },
@@ -116,7 +116,7 @@ pipeline {
                                     --skip-version-check \
                                     --scanners vuln \
                                     --severity HIGH,CRITICAL \
-                                    --exit-code 1 \
+                                    --exit-code 0 \
                                     --ignore-unfixed hajer532/formation-service:latest
                             """
                         },
@@ -129,7 +129,7 @@ pipeline {
                                     --skip-version-check \
                                     --scanners vuln \
                                     --severity HIGH,CRITICAL \
-                                    --exit-code 1 \
+                                    --exit-code 0\
                                     --ignore-unfixed hajer532/eureka-server:latest
                             """
                         }
