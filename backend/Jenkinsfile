@@ -1,10 +1,13 @@
 pipeline {
     agent any
 
-   
+    tools {
+        maven 'M2'      // Maven ajouté dans Jenkins (Name = M2)
+        jdk 'jdk17'     // JDK ajouté dans Jenkins (Name = jdk17)
+    }
 
     environment {
-        GITHUB_CREDENTIALS = 'github1'
+        GITHUB_CREDENTIALS = 'github'
         DOCKERHUB_CREDENTIALS = 'dockerhub3'
         SONAR_CREDENTIALS = 'jenkins-sonar'
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
@@ -12,135 +15,85 @@ pipeline {
     }
 
     stages {
-
-        // 1️⃣ Chekout
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/hajerHr2/stage.git', credentialsId: "${GITHUB_CREDENTIALS}"
             }
         }
 
-        // 2️⃣ Build Maven en parallèle avec cache local .m2
-        stage('Build & Package') {
+        stage('Build & Unit Tests') {
             steps {
                 script {
-                    sh 'mkdir -p $WORKSPACE/.m2/repository'
-
-                    parallel(
-                        'User-Service': { 
-                            sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository package -T 2C -DskipTests -f backend/User-Service/pom.xml" 
-                        },
-                        'Formation-Service': { 
-                            sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository package -T 2C -DskipTests -f backend/Formation-Service/pom.xml" 
-                        },
-                        'Eureka-Server': { 
-                            sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository package -T 2C -DskipTests -f backend/Eureka-Server/pom.xml" 
-                        }
-                    )
+                    sh "mvn clean verify -f backend/User-Service/pom.xml"
+                    sh "mvn clean verify -f backend/Formation-Service/pom.xml"
+                    sh "mvn clean verify -f backend/Eureka-Server/pom.xml"
                 }
             }
         }
 
-        // 3️⃣ SonarQube Analyskis en parallèle avec cache Maven
-        stage('SonarQube Analysis') {
+        stage('SonarQube Analysis (main seulement)') {
+            when { branch 'main' }
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
                     script {
-                        parallel(
-                            'User-Service': { 
-                                sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository sonar:sonar -f backend/User-Service/pom.xml -Dsonar.projectKey=auth -Dsonar.scm.enabled=true" 
-                            },
-                            'Formation-Service': { 
-                                sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository sonar:sonar -f backend/Formation-Service/pom.xml -Dsonar.projectKey=formation-service -Dsonar.scm.enabled=true" 
-                            },
-                            'Eureka-Server': { 
-                                sh "mvn -Dmaven.repo.local=$WORKSPACE/.m2/repository sonar:sonar -f backend/Eureka-Server/pom.xml -Dsonar.projectKey=eureka-server -Dsonar.scm.enabled=true" 
-                            }
-                        )
+                        sh """
+                        mvn sonar:sonar -f backend/User-Service/pom.xml \
+                            -Dsonar.projectKey=auth \
+                            -Dsonar.scm.enabled=true
+                        
+                        mvn sonar:sonar -f backend/Formation-Service/pom.xml \
+                            -Dsonar.projectKey=formation-service \
+                            -Dsonar.scm.enabled=true
+                        
+                        mvn sonar:sonar -f backend/Eureka-Server/pom.xml \
+                            -Dsonar.projectKey=eureka-server \
+                            -Dsonar.scm.enabled=true
+                        """
                     }
                 }
             }
         }
 
-        // 4️⃣ Build Docker Images en parallèle
         stage('Build Docker Images') {
             steps {
-                parallel(
-                    'Auth Image': { sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service' },
-                    'Formation Image': { sh 'docker build -t hajer532/formation-service:latest -f backend/Formation-Service/Dockerfile backend/Formation-Service' },
-                    'Eureka Image': { sh 'docker build -t hajer532/eureka-server:latest -f backend/Eureka-Server/Dockerfile backend/Eureka-Server' }
-                )
+                sh 'docker build -t hajer532/auth:latest -f backend/User-Service/Dockerfile backend/User-Service'
+                sh 'docker build -t hajer532/formation-service:latest -f backend/Formation-Service/Dockerfile backend/Formation-Service'
+                sh 'docker build -t hajer532/eureka-server:latest -f backend/Eureka-Server/Dockerfile backend/Eureka-Server'
             }
         }
 
-        // 5️⃣ Push Docker Images
         stage('Push Docker Images') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh '''
-                        docker push hajer532/auth:latest
-                        docker push hajer532/formation-service:latest
-                        docker push hajer532/eureka-server:latest
-                    '''
+                    sh 'docker push hajer532/auth:latest'
+                    sh 'docker push hajer532/formation-service:latest'
+                    sh 'docker push hajer532/eureka-server:latest'
                 }
             }
         }
 
-        // 6️⃣ Trivy Scan en parallèle
         stage('Trivy Scan') {
             steps {
-                script {
-                    sh 'mkdir -p $TRIVY_CACHE_DIR/db'
-
-                    parallel(
-                        'Scan Auth': { 
-                            sh """
-                                docker run --rm \
-                                    -v /var/run/docker.sock:/var/run/docker.sock \
-                                    -v $TRIVY_CACHE_DIR:/root/.cache \
-                                    aquasec/trivy image --timeout 60m \
-                                    --skip-version-check \
-                                    --scanners vuln \
-                                    --severity HIGH,CRITICAL \
-                                    --exit-code 0 \
-                                    --ignore-unfixed hajer532/auth:latest
-                            """
-                        },
-                        'Scan Formation': { 
-                            sh """
-                                docker run --rm \
-                                    -v /var/run/docker.sock:/var/run/docker.sock \
-                                    -v $TRIVY_CACHE_DIR:/root/.cache \
-                                    aquasec/trivy image --timeout 60m \
-                                    --skip-version-check \
-                                    --scanners vuln \
-                                    --severity HIGH,CRITICAL \
-                                    --exit-code 0 \
-                                    --ignore-unfixed hajer532/formation-service:latest
-                            """
-                        },
-                        'Scan Eureka': { 
-                            sh """
-                                docker run --rm \
-                                    -v /var/run/docker.sock:/var/run/docker.sock \
-                                    -v $TRIVY_CACHE_DIR:/root/.cache \
-                                    aquasec/trivy image --timeout 60m \
-                                    --skip-version-check \
-                                    --scanners vuln \
-                                    --severity HIGH,CRITICAL \
-                                    --exit-code 0\
-                                    --ignore-unfixed hajer532/eureka-server:latest
-                            """
-                        }
-                    )
-                }
+                sh '''
+                for IMAGE in hajer532/auth:latest hajer532/formation-service:latest hajer532/eureka-server:latest; do
+                    echo "Scanning $IMAGE ..."
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v $TRIVY_CACHE_DIR:/root/.cache/trivy \
+                        aquasec/trivy image \
+                        --timeout 60m \
+                        --skip-version-check \
+                        --scanners vuln \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 0 \
+                        --ignore-unfixed "$IMAGE"
+                done
+                '''
             }
         }
 
-        // 7️⃣ Deploy to Kssdddddddubernetes (seulement branche main)
         stage('Deploy to Kubernetes') {
-            when { branch 'main' }
+            when { branch 'hajertest' }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
                 sh 'kubectl apply -f k8s/formation-deployment.yaml'
@@ -150,7 +103,7 @@ pipeline {
     }
 
     post {
-        
+      
         success { echo '✅ Pipeline terminé avec succès !' }
         failure { echo '❌ Pipeline échoué. Vérifier les logs.' }
     }
