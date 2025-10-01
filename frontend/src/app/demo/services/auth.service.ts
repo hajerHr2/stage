@@ -12,7 +12,7 @@ import { Router } from '@angular/router';
   providedIn: 'root'
 })
 export class AuthService {
-    private apiUrl = 'http://localhost:8089/tests/auth';
+    private apiUrl = 'https://www.website.com/tests/auth';
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -98,14 +98,14 @@ export class AuthService {
 
   getCurrentUser(): Observable<User> {
     const userId = this.getUserId();
-    return this.http.get<User>(`http://localhost:8089/tests/user/getbyid/${userId}`).pipe(
+    return this.http.get<User>(`https://www.website.com/tests/user/getbyid/${userId}`).pipe(
       catchError(this.handleError)
     );
   }
 
   updateProfile(user: User): Observable<User> {
     const userId = this.getUserId();
-    return this.http.put<User>(`http://localhost:8089/tests/user/getbyid/${userId}`, user).pipe(
+    return this.http.put<User>(`https://www.website.com/tests/user/getbyid/${userId}`, user).pipe(
       catchError(this.handleError)
     );
   }

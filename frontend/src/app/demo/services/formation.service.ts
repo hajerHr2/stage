@@ -9,7 +9,7 @@ import { Categorie, Formation, Reservation } from '../models/formation.model';
   providedIn: 'root'
 })
 export class FormationService {
-  private readonly apiUrl = 'http://localhost:9094/Formation-Service/api';
+  private readonly apiUrl = 'https://www.website.com/Formation-Service/api';
 
   constructor(private http: HttpClient) {}
 
