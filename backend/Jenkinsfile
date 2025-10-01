@@ -123,9 +123,8 @@ pipeline {
             }
         }
 
-        // 7️⃣ Deploy to Kubernetes (seulement sur main)
+        // 7️⃣ Deploy to Kubernetes (toujours exécuté)
         stage('Deploy to Kubernetes') {
-            when { branch 'main' }
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
                 sh 'kubectl apply -f k8s/formation-deployment.yaml'
