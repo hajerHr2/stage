@@ -15,7 +15,6 @@ pipeline {
     }
 
     stages {
-      
 
         // 1️⃣ Checkout
         stage('Checkout Code') {
@@ -24,7 +23,7 @@ pipeline {
             }
         }
 
-        // 2️⃣ Build Maven en parallèle (sans cache local)
+        // 2️⃣ Build Maven en parallèle
         stage('Build & Package') {
             steps {
                 script {
@@ -43,7 +42,7 @@ pipeline {
             }
         }
 
-        // 3️⃣ SonarQube Analysis (sans cache Maven)
+        // 3️⃣ Analyse SonarQube
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONAR_CREDENTIALS}") {
@@ -64,7 +63,7 @@ pipeline {
             }
         }
 
-        // 4️⃣ Build Docker Images en parallèle
+        // 4️⃣ Build Docker Images
         stage('Build Docker Images') {
             steps {
                 parallel(
@@ -95,57 +94,43 @@ pipeline {
             }
         }
 
-        // 6️⃣ Trivy Scan en parallèle
+        // 6️⃣ Trivy Scan
         stage('Trivy Scan') {
             steps {
                 script {
                     sh 'mkdir -p $TRIVY_CACHE_DIR/db'
+
+                    def scanImage = { imageName ->
+                        return """
+                        docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            -v $TRIVY_CACHE_DIR:$TRIVY_CACHE_DIR \
+                            aquasec/trivy image --timeout 60m \
+                            --skip-version-check \
+                            --scanners vuln \
+                            --cache-dir $TRIVY_CACHE_DIR \
+                            --severity HIGH,CRITICAL \
+                            --exit-code 0 \
+                            --ignore-unfixed ${imageName}
+                        """
+                    }
+
                     parallel(
                         'Scan Auth': {
-                            sh """
-                            docker run --rm \
-                                -v /var/run/docker.sock:/var/run/docker.sock \
-                                -v $TRIVY_CACHE_DIR:/root/.cache \
-                                aquasec/trivy image --timeout 60m \
-                                --skip-version-check \
-                                --scanners vuln \
-                                --severity HIGH,CRITICAL \
-                                --exit-code 0 \
-                                --ignore-unfixed hajer532/auth:latest
-                            """
+                            sh scanImage("hajer532/auth:latest")
                         },
                         'Scan Formation': {
-                            sh """
-                            docker run --rm \
-                                -v /var/run/docker.sock:/var/run/docker.sock \
-                                -v $TRIVY_CACHE_DIR:/root/.cache \
-                                aquasec/trivy image --timeout 60m \
-                                --skip-version-check \
-                                --scanners vuln \
-                                --severity HIGH,CRITICAL \
-                                --exit-code 0 \
-                                --ignore-unfixed hajer532/formation-service:latest
-                            """
+                            sh scanImage("hajer532/formation-service:latest")
                         },
                         'Scan Eureka': {
-                            sh """
-                            docker run --rm \
-                                -v /var/run/docker.sock:/var/run/docker.sock \
-                                -v $TRIVY_CACHE_DIR:/root/.cache \
-                                aquasec/trivy image --timeout 60m \
-                                --skip-version-check \
-                                --scanners vuln \
-                                --severity HIGH,CRITICAL \
-                                --exit-code 0 \
-                                --ignore-unfixed hajer532/eureka-server:latest
-                            """
+                            sh scanImage("hajer532/eureka-server:latest")
                         }
                     )
                 }
             }
         }
 
-        // 7️⃣ Deploy to Kubernetes (main seulement)
+        // 7️⃣ Deploy to Kubernetes (seulement sur main)
         stage('Deploy to Kubernetes') {
             when { branch 'main' }
             steps {
