@@ -98,17 +98,16 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 script {
-                    sh 'mkdir -p $TRIVY_CACHE_DIR/db'
+                    sh 'mkdir -p $TRIVY_CACHE_DIR'
 
                     def scanImage = { imageName ->
                         return """
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \
-                            -v $TRIVY_CACHE_DIR:$TRIVY_CACHE_DIR \
+                            -v $TRIVY_CACHE_DIR:/root/.cache/ \
                             aquasec/trivy image --timeout 60m \
                             --skip-version-check \
                             --scanners vuln \
-                            --cache-dir $TRIVY_CACHE_DIR \
                             --severity HIGH,CRITICAL \
                             --exit-code 0 \
                             --ignore-unfixed ${imageName}
@@ -116,15 +115,9 @@ pipeline {
                     }
 
                     parallel(
-                        'Scan Auth': {
-                            sh scanImage("hajer532/auth:latest")
-                        },
-                        'Scan Formation': {
-                            sh scanImage("hajer532/formation-service:latest")
-                        },
-                        'Scan Eureka': {
-                            sh scanImage("hajer532/eureka-server:latest")
-                        }
+                        'Scan Auth': { sh scanImage("hajer532/auth:latest") },
+                        'Scan Formation': { sh scanImage("hajer532/formation-service:latest") },
+                        'Scan Eureka': { sh scanImage("hajer532/eureka-server:latest") }
                     )
                 }
             }
