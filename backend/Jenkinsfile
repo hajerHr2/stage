@@ -128,7 +128,7 @@ pipeline {
             steps {
                 sh 'kubectl apply -f k8s/auth-deployment.yaml'
                 sh 'kubectl apply -f k8s/formation-deployment.yaml'
-                sh 'kubectl apply -f k8s/eureka-deployment.yaml'
+             
             }
         }
     }
