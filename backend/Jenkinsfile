@@ -126,9 +126,9 @@ pipeline {
         // 7️⃣ Deploy to Kubernetes (toujours exécuté)
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f k8s/auth-deployment.yaml --validate=false'
-                sh 'kubectl apply -f k8s/formation-deployment.yaml --validate=false'
-                sh 'kubectl apply -f k8s/eureka-deployment.yaml --validate=false'
+                sh 'sudo kubectl apply -f k8s/auth-deployment.yaml --validate=false'
+                sh 'sudo kubectl apply -f k8s/formation-deployment.yaml --validate=false'
+                sh 'sudo kubectl apply -f k8s/eureka-deployment.yaml --validate=false'
             }
         }
     }
