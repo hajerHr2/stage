@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: formation-deployment
+  labels:
+    app: formation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: formation
+  template:
+    metadata:
+      labels:
+        app: formation
+    spec:
+      containers:
+        - name: formation
+          image: hajer532/formation:latest
+          ports:
+            - containerPort: 9094
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+
+            # Database
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql-service:3306/Formation-Service?createDatabaseIfNotExist=true
+            - name: SPRING_DATASOURCE_USERNAME
+              value: user
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "0000"
+
+            # JPA
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: com.mysql.cj.jdbc.Driver
+
+            # Eureka
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://eureka-service:8761/eureka
+            - name: EUREKA_INSTANCE_PREFER_IPADDRESS
+              value: "true"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: formation-service
+spec:
+  selector:
+    app: formation
+  ports:
+    - port: 9094
+      targetPort: 9094
+  type: ClusterIP
