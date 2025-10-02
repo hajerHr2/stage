@@ -94,34 +94,36 @@ pipeline {
             }
         }
 
-        // 6️⃣ Trivy Scan
-        stage('Trivy Scan') {
-            steps {
-                script {
-                    sh 'mkdir -p $TRIVY_CACHE_DIR'
+    // 6️⃣ Trivy Scan
+stage('Trivy Scan') {
+    steps {
+        script {
+            // Créer le dossier avec droits ouverts
+            sh 'mkdir -p $TRIVY_CACHE_DIR && chmod -R 777 $TRIVY_CACHE_DIR'
 
-                    def scanImage = { imageName ->
-                        return """
-                        docker run --rm \
-                            -v /var/run/docker.sock:/var/run/docker.sock \
-                            -v $TRIVY_CACHE_DIR:/root/.cache/ \
-                            aquasec/trivy image --timeout 60m \
-                            --skip-version-check \
-                            --scanners vuln \
-                            --severity HIGH,CRITICAL \
-                            --exit-code 0 \
-                            --ignore-unfixed ${imageName}
-                        """
-                    }
-
-                    parallel(
-                        'Scan Auth': { sh scanImage("hajer532/auth:latest") },
-                        'Scan Formation': { sh scanImage("hajer532/formation-service:latest") },
-                        'Scan Eureka': { sh scanImage("hajer532/eureka-server:latest") }
-                    )
-                }
+            def scanImage = { imageName ->
+                return """
+                docker run --rm \
+                    -e HOME=/root \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v $TRIVY_CACHE_DIR:/root/.cache/ \
+                    aquasec/trivy image --timeout 60m \
+                    --skip-version-check \
+                    --scanners vuln \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 0 \
+                    --ignore-unfixed ${imageName}
+                """
             }
+
+            parallel(
+                'Scan Auth': { sh scanImage("hajer532/auth:latest") },
+                'Scan Formation': { sh scanImage("hajer532/formation-service:latest") },
+                'Scan Eureka': { sh scanImage("hajer532/eureka-server:latest") }
+            )
         }
+    }
+}
 
         // 7️⃣ Deploy to Kubernetes (toujours exécuté)
         stage('Deploy to Kubernetes') {
