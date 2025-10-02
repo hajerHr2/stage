@@ -20,9 +20,6 @@ spec:
           ports:
             - containerPort: 9094
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: prod
-
             # Database
             - name: SPRING_DATASOURCE_URL
               value: jdbc:mysql://mysql-service:3306/Formation-Service?createDatabaseIfNotExist=true
