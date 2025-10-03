@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: formation
-          image: hajer532/formation:latest
+          image: hajer532/formation-service:latest
           ports:
             - containerPort: 9094
           env:
