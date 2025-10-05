@@ -1,16 +1,19 @@
+# Base image Nginx
 FROM nginx:alpine
 
-# Remove default nginx static content
+# Supprimer le contenu par défaut
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy Angular build output to nginx html folder
-COPY dist/frontend/ /usr/share/nginx/html/
+# Détecter automatiquement le dossier Angular build dans dist/
+# et le copier dans Nginx
+ARG ANGULAR_DIST
+COPY $ANGULAR_DIST/ /usr/share/nginx/html/
 
-# Copy custom nginx configuration to replace the default one
+# Copier la configuration Nginx personnalisée
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
+# Exposer le port 80
 EXPOSE 80
 
-# Start nginx server
+# Lancer Nginx en avant-plan
 CMD ["nginx", "-g", "daemon off;"]
