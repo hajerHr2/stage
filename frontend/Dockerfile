@@ -1,18 +1,15 @@
-# Base image Nginx
+# Étape 1 : Build Angular
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build --configuration production
+
+# Étape 2 : Nginx pour servir l’app
 FROM nginx:alpine
-
-# Supprimer le contenu par défaut du dossier HTML
 RUN rm -rf /usr/share/nginx/html/*
-
-# Copier le build Angular
-ARG ANGULAR_DIST
-COPY $ANGULAR_DIST/ /usr/share/nginx/html/
-
-# ⚠️ Copier nginx.conf comme fichier principal
+COPY --from=build /app/dist/frontend/ /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/nginx.conf
-
-# Exposer le port 80
 EXPOSE 80
-
-# Lancer Nginx en avant-plan
 CMD ["nginx", "-g", "daemon off;"]
