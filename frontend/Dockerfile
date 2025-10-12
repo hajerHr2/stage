@@ -1,10 +1,14 @@
+# Étape unique — on ne reconstruit pas Angular ici
 FROM nginx:alpine
+
+# Supprimer la configuration par défaut de Nginx
 RUN rm -rf /usr/share/nginx/html/*
 
-# On suppose que Jenkins a déjà fait "ng build" dans frontend/dist/frontend/
-ARG ANGULAR_DIST=frontend/dist/frontend
-COPY ${ANGULAR_DIST}/ /usr/share/nginx/html/
+# Copier le build déjà fait par Jenkins
+COPY frontend/dist/sakai-ng /usr/share/nginx/html
 
-COPY frontend/nginx.conf /etc/nginx/nginx.conf
+# Exposer le port
 EXPOSE 80
+
+# Lancer Nginx
 CMD ["nginx", "-g", "daemon off;"]
