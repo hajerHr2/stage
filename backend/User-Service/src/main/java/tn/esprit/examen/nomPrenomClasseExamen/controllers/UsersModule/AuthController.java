@@ -15,6 +15,7 @@ import tn.esprit.examen.nomPrenomClasseExamen.services.UsersModule.ProducerServi
 
 import java.util.HashMap;
 import java.util.Map;
+@CrossOrigin(origins = "*")
 
 @RestController
 @RequestMapping("/auth")
