@@ -1,19 +1,20 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { Categorie, Formation, Reservation } from '../models/formation.model';
-
+import { environment } from '../../../environments/environment'; // ✅ Import de l'environnement
 
 @Injectable({
   providedIn: 'root'
 })
 export class FormationService {
-  private readonly apiUrl = 'https://www.website.com/Formation-Service/api';
+  // ✅ URL dynamique depuis environment.ts
+  private readonly apiUrl = `${environment.formationServiceUrl}`;
 
   constructor(private http: HttpClient) {}
 
-  // Categorie Service Methods
+  // --- CATEGORIE ---
   getAllCategories(): Observable<Categorie[]> {
     return this.http.get<Categorie[]>(`${this.apiUrl}/categories`).pipe(
       catchError(this.handleError)
@@ -38,7 +39,7 @@ export class FormationService {
     );
   }
 
-  // Formation Service Methods
+  // --- FORMATION ---
   getAllFormations(): Observable<Formation[]> {
     return this.http.get<Formation[]>(`${this.apiUrl}/formations`).pipe(
       catchError(this.handleError)
@@ -52,8 +53,7 @@ export class FormationService {
   }
 
   addFormation(formData: FormData): Observable<Formation> {
-    // Let Angular automatically set the Content-Type header for multipart/form-data
-    // Don't specify headers to allow browser to set proper multipart boundary
+    // ⚠️ Pas besoin de headers ici, Angular gère Content-Type
     return this.http.post<Formation>(`${this.apiUrl}/formations/upload`, formData).pipe(
       catchError(this.handleError)
     );
@@ -71,7 +71,7 @@ export class FormationService {
     );
   }
 
-  // Reservation Service Methods
+  // --- RESERVATION ---
   getAllReservations(): Observable<Reservation[]> {
     return this.http.get<Reservation[]>(`${this.apiUrl}/reservations`).pipe(
       catchError(this.handleError)
@@ -103,11 +103,13 @@ export class FormationService {
   }
 
   updateReservationStatus(reservationId: number, status: string): Observable<Reservation> {
-    return this.http.put<Reservation>(`${this.apiUrl}/reservations/${reservationId}/status?status=${status}`, {}).pipe(
-      catchError(this.handleError)
-    );
+    return this.http.put<Reservation>(
+      `${this.apiUrl}/reservations/${reservationId}/status?status=${status}`,
+      {}
+    ).pipe(catchError(this.handleError));
   }
 
+  // --- GESTION D'ERREURS ---
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An error occurred';
     if (error.error instanceof ErrorEvent) {
