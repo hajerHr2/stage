@@ -30,6 +30,24 @@ export class UserService {
       .pipe(catchError(this.handleError));
   }
 
+   updateUser(user: User): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/updateUser`, user, { headers: this.getHeaders() }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  getUserById(id: number): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/getbyid/${id}`, { headers: this.getHeaders() }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  deleteUser(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/delete/${id}`, { headers: this.getHeaders() }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   private handleError(error: HttpErrorResponse): Observable<never> {
     const errorMessage =
       error.error instanceof ErrorEvent
