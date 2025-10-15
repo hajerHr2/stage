@@ -4,10 +4,9 @@
 
 export const environment = {
   production: true,
-  authServiceUrl: 'http://auth-service:8089/tests',
+ authServiceUrl: 'http://192.168.33.10:8089/tests',
  
-  formationServiceUrl: 'http://formation-service:9094/formation'
-};
+  formationServiceUrl: 'http://192.168.33.10:9094/formation'};
 
 /*
  * For easier debugging in development mode, you can import the following file
