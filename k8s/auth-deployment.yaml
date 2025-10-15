@@ -5,7 +5,7 @@ metadata:
   labels:
     app: auth
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: auth
@@ -57,4 +57,5 @@ spec:
   ports:
     - port: 8089
       targetPort: 8089
-  type: ClusterIP
+      nodePort: 30089     # ← AJOUTÉ
+  type: NodePort          # ← CHANGÉ de ClusterIP à NodePort

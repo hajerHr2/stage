@@ -1,54 +1,61 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: formation-deployment
+  name: auth-deployment
   labels:
-    app: formation
+    app: auth
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: formation
+      app: auth
   template:
     metadata:
       labels:
-        app: formation
+        app: auth
     spec:
       containers:
-        - name: formation
-          image: hajer532/formation-service:latest
+        - name: auth
+          image: hajer532/auth:latest
           ports:
-            - containerPort: 9094
+            - containerPort: 8089
           env:
             # Database
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://mysql-service:3306/Formation-Service?createDatabaseIfNotExist=true
+              value: jdbc:mysql://mysql-service:3306/prodbd?createDatabaseIfNotExist=true
             - name: SPRING_DATASOURCE_USERNAME
               value: user
             - name: SPRING_DATASOURCE_PASSWORD
               value: "0000"
 
-            # JPA
-            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-              value: update
-            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
-              value: com.mysql.cj.jdbc.Driver
+            # Kafka
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-service:9092
 
-            # Eureka
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://eureka-service:8761/eureka
-            - name: EUREKA_INSTANCE_PREFER_IPADDRESS
+            # Mail
+            - name: SPRING_MAIL_HOST
+              value: smtp.gmail.com
+            - name: SPRING_MAIL_PORT
+              value: "587"
+            - name: SPRING_MAIL_USERNAME
+              value: hajerhr7@gmail.com
+            - name: SPRING_MAIL_PASSWORD
+              value: "apec nvum joqt ymlc"
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
+              value: "true"
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
               value: "true"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: formation-service
+  name: auth-service
 spec:
   selector:
-    app: formation
+    app: auth
   ports:
-    - port: 9094
-      targetPort: 9094
-  type: ClusterIP
+    - port: 8089
+      targetPort: 8089
+      nodePort: 30089     # ← AJOUTÉ
+  type: NodePort          # ← CHANGÉ de ClusterIP à NodePort
