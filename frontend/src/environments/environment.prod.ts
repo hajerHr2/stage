@@ -2,5 +2,5 @@ export const environment = {
    production: true,
   authServiceUrl: 'http://192.168.33.10:30080/tests',
  
-  formationServiceUrl: 'http://192.168.33.10:30080/formation'
+  formationServiceUrl: 'http://192.168.33.10:30080/Formation-Service/api'
 };
